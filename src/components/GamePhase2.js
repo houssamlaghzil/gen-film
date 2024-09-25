@@ -14,6 +14,10 @@ import {
 console.log('GamePhase2.js loaded');
 
 function GamePhase2() {
+
+    const [loaded, setLoaded] = useState(false);
+
+
     const [prompts, setPrompts] = useState([]);
     const [guesses, setGuesses] = useState({});
     const [waiting, setWaiting] = useState(false);
@@ -217,7 +221,8 @@ function GamePhase2() {
                 prompts.map((promptData, index) => (
                     <div key={index}>
                         <h3>Image {index + 1}</h3>
-                        <img src={promptData.imageUrl} alt={`Image ${index + 1}`} />
+                        <img src={promptData.imageUrl} alt={`Image ${index + 1}`} className={loaded ? 'loaded' : ''}
+                             onLoad={() => setLoaded(true)}/>
                         <input
                             type="text"
                             placeholder="Your guess"

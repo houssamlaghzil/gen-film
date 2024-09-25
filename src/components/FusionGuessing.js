@@ -14,6 +14,9 @@ import {
 console.log('FusionGuessing.js loaded');
 
 function FusionGuessing() {
+
+    const [loaded, setLoaded] = useState(false);
+
     const [mergedImageUrl, setMergedImageUrl] = useState('');
     const [guess1, setGuess1] = useState('');
     const [guess2, setGuess2] = useState('');
@@ -201,7 +204,8 @@ function FusionGuessing() {
             </p>
             {mergedImageUrl ? (
                 <div>
-                    <img src={mergedImageUrl} alt="Fused Image" />
+                    <img src={mergedImageUrl} alt="Fused Image" className={loaded ? 'loaded' : ''}
+                         onLoad={() => setLoaded(true)}/>
                     <div>
                         <input
                             type="text"
