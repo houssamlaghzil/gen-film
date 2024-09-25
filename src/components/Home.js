@@ -21,7 +21,7 @@ function Home() {
 
     return (
         <div>
-            <h1>Bienvenue dans le jeu</h1>
+            <h1>Bienvenue dans le jeu v1</h1>
             <input
                 type="text"
                 placeholder="Entrez votre pseudo"
