@@ -28,12 +28,14 @@ function Home() {
                 value={pseudo}
                 onChange={(e) => setPseudo(e.target.value)}
             />
+
             <input
                 type="text"
                 placeholder="Code de la room"
                 value={roomCode}
                 onChange={(e) => setRoomCode(e.target.value)}
             />
+
             <button onClick={handleCreateRoom}>Créer une room</button>
             <button onClick={handleJoinRoom}>Rejoindre une room</button>
         </div>
