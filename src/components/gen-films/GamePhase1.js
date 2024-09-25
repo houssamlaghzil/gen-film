@@ -1,7 +1,7 @@
 // GamePhase1.js
 import React, {useState, useEffect} from 'react';
 import axios from 'axios';
-import {database} from '../firebaseConfig';
+import {database} from '../../firebaseConfig';
 import {useNavigate, useParams, useLocation} from 'react-router-dom';
 import {ref, set, update} from 'firebase/database';
 
@@ -29,7 +29,7 @@ function GamePhase1() {
                             {
                                 role: 'user',
                                 content:
-                                    'Donne-moi une liste de 3 films de popularités différentes (connu, moins connu, niche). Pour chaque film, donne le titre et son niveau de popularité au format : "Titre du film" - popularité.',
+                                    'Donne-moi une liste de 3 films de popularités différentes (connu, moins connu, niche). Pour chaque film, donne le titre et son niveau de popularité au format : "Titre du film" - popularité. Et uniquement ça rien d autre.',
                             },
                         ],
                     },
@@ -47,7 +47,7 @@ function GamePhase1() {
                     .map((line) => line.replace(/^\d+\.\s*/, ''))
                     .map((line) => {
                         const [title, popularity] = line.split(' - ');
-                        return { title: title.replace(/"/g, '').trim(), popularity: popularity.trim() };
+                        return {title: title.replace(/"/g, '').trim(), popularity: popularity.trim()};
                     });
 
                 setFilms(filmsList);
@@ -73,7 +73,7 @@ function GamePhase1() {
                     messages: [
                         {
                             role: 'user',
-                            content: `Améliore ce prompt en ajoutant des détails sur l'arrière-plan et le style graphique pour une image attrayante : ${prompt}`,
+                            content: `Améliore ce prompt en optimisent les détails sur l'arrière-plan et le style graphique, en ajoutant des detail qui colle avec le prompte d'origine, pour obtenir un prompte qui tire le meilleur de dall-e 3 (assure toi que ce prompte soit accepter par dall-e modifi les aspect qui pourais bloquer pour que sa passe): ${prompt}`,
                         },
                     ],
                 },
@@ -124,7 +124,7 @@ function GamePhase1() {
                 filmPopularity: selectedFilm.popularity,
             });
 
-            navigate(`/game/phase2/${roomCode}`, { state: { playerId, pseudo } });
+            navigate(`/game/phase2/${roomCode}`, {state: {playerId, pseudo}});
         } catch (error) {
             console.error('Erreur lors du traitement du prompt:', error);
         }

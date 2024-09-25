@@ -1,7 +1,7 @@
 // JoinRoom.js
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { database } from '../firebaseConfig';
+import { database } from '../../firebaseConfig';
 import { v4 as uuidv4 } from 'uuid';
 import { ref, get, child, set } from 'firebase/database';
 

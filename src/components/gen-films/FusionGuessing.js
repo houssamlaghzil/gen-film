@@ -1,6 +1,6 @@
 // FusionGuessing.js
 import React, { useState, useEffect } from 'react';
-import { database } from '../firebaseConfig';
+import { database } from '../../firebaseConfig';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
     ref,

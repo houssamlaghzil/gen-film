@@ -2,15 +2,15 @@
 import React, {useEffect, useState} from 'react';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import Home from './components/Home';
-import CreateRoom from './components/CreateRoom';
-import JoinRoom from './components/JoinRoom';
-import WaitingRoom from './components/WaitingRoom';
-import GamePhase1 from './components/GamePhase1';
-import GamePhase2 from './components/GamePhase2';
-import GamePhase3 from './components/GamePhase3';
-import FusionPrompt from './components/FusionPrompt';
-import Scoreboard from './components/Scoreboard';
-import FusionGuessing from "./components/FusionGuessing";
+import CreateRoom from './components/room-gestion/CreateRoom';
+import JoinRoom from './components/room-gestion/JoinRoom';
+import WaitingRoom from './components/room-gestion/WaitingRoom';
+import GamePhase1 from './components/gen-films/GamePhase1';
+import GamePhase2 from './components/gen-films/GamePhase2';
+import GamePhase3 from './components/gen-films/GamePhase3';
+import FusionPrompt from './components/gen-films/FusionPrompt';
+import Scoreboard from './components/gen-films/Scoreboard';
+import FusionGuessing from "./components/gen-films/FusionGuessing";
 import './App.css';
 
 console.log('App.js chargé');

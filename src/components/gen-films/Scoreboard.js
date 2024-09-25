@@ -1,6 +1,6 @@
 // Scoreboard.js
 import React, { useState, useEffect } from 'react';
-import { database } from '../firebaseConfig';
+import { database } from '../../firebaseConfig';
 import { useParams, useLocation } from 'react-router-dom';
 import { ref, get } from 'firebase/database';
 

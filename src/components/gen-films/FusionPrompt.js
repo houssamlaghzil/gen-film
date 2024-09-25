@@ -1,7 +1,7 @@
 // FusionPrompt.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { database } from '../firebaseConfig';
+import { database } from '../../firebaseConfig';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ref, set, update, get } from 'firebase/database';
 
