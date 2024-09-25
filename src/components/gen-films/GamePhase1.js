@@ -18,18 +18,132 @@ function GamePhase1() {
 
     useEffect(() => {
         console.log('Chargement des films depuis l\'API GPT-3.5');
+        //re cupere ce json et mes le dans une variable "src/list de films/listfilms.json"
+        const MyJson =
+            {
+                "blockbusters": [
+                    "Avatar",
+                    "Avengers: Endgame",
+                    "Titanic",
+                    "Jurassic Park",
+                    "The Lion King",
+                    "Star Wars: The Force Awakens",
+                    "Furious 7",
+                    "The Dark Knight",
+                    "Harry Potter and the Sorcerer's Stone",
+                    "Frozen",
+                    "Black Panther",
+                    "The Avengers",
+                    "Spider-Man: No Way Home",
+                    "Inception",
+                    "The Lord of the Rings: The Return of the King",
+                    "Pirates of the Caribbean: Dead Man's Chest",
+                    "The Matrix",
+                    "Finding Nemo",
+                    "Toy Story 3",
+                    "Transformers: Dark of the Moon",
+                    "The Hunger Games",
+                    "The Twilight Saga: Breaking Dawn Part 2",
+                    "Jumanji: Welcome to the Jungle",
+                    "Iron Man 3",
+                    "Shrek 2",
+                    "Batman v Superman: Dawn of Justice",
+                    "Captain America: Civil War",
+                    "Aquaman",
+                    "Zootopia",
+                    "Beauty and the Beast (2017)"
+                ],
+                "known_films": [
+                    "The Grand Budapest Hotel",
+                    "Donnie Darko",
+                    "Whiplash",
+                    "The King's Speech",
+                    "A Beautiful Mind",
+                    "Moonlight",
+                    "Her",
+                    "Birdman",
+                    "Little Miss Sunshine",
+                    "The Social Network",
+                    "The Imitation Game",
+                    "Prisoners",
+                    "The Revenant",
+                    "Gone Girl",
+                    "Slumdog Millionaire",
+                    "Django Unchained",
+                    "Mad Max: Fury Road",
+                    "La La Land",
+                    "12 Years a Slave",
+                    "The Theory of Everything",
+                    "Ex Machina",
+                    "Drive",
+                    "The Big Short",
+                    "Room",
+                    "No Country for Old Men",
+                    "The Shape of Water",
+                    "The Hurt Locker",
+                    "The Fighter",
+                    "Memento",
+                    "Spotlight"
+                ],
+                "niche_films": [
+                    "The Lighthouse",
+                    "A Ghost Story",
+                    "Under the Skin",
+                    "The Florida Project",
+                    "Enemy",
+                    "The Witch",
+                    "Enter the Void",
+                    "Only Lovers Left Alive",
+                    "Annihilation",
+                    "Swiss Army Man",
+                    "Blue Ruin",
+                    "Tangerine",
+                    "It Comes at Night",
+                    "The Turin Horse",
+                    "The Endless",
+                    "Upstream Color",
+                    "American Honey",
+                    "Raw",
+                    "Climax",
+                    "Mandy",
+                    "Under the Silver Lake",
+                    "First Reformed",
+                    "Colossal",
+                    "The Art of Self-Defense",
+                    "Uncut Gems",
+                    "The Wind",
+                    "Nightcrawler",
+                    "The Lobster",
+                    "A Girl Walks Home Alone at Night",
+                    "Beyond the Black Rainbow"
+                ]
+            }
+
+
         // Fonction pour récupérer les films depuis l'API OpenAI
         const fetchFilms = async () => {
             try {
-                const response = await axios.post(
+                //choisi un film aleatoirement dans le json 1 par categorie
+                const blockbusters = MyJson.blockbusters[Math.floor(Math.random() * MyJson.blockbusters.length)];
+                const known_films = MyJson.known_films[Math.floor(Math.random() * MyJson.known_films.length)];
+                const niche_films = MyJson.niche_films[Math.floor(Math.random() * MyJson.niche_films.length)];
+
+
+                console.log('Récupération des films depuis l\'API GPT-3.5');
+/*                const jsonString = JSON.stringify(MyJson);
+                let response;
+                response = await axios.post(
                     'https://api.openai.com/v1/chat/completions',
                     {
                         model: 'gpt-3.5-turbo',
                         messages: [
                             {
                                 role: 'user',
-                                content:
-                                    'Donne-moi une liste de 3 films de popularités différentes (connu, moins connu, niche). Pour chaque film, donne le titre et son niveau de popularité au format : "Titre du film" - popularité. Et uniquement ça rien d autre.',
+                                content: `Donne-moi une liste de 3 films de popularités différentes  piocher aleatoirements
+                                (Blockbusters, assez connus, niche). Pour chaque film, donne le titre et son niveau de popularité au format :
+                                 "Titre du film" - popularité.
+                                 Inspire-toi de ce JSON : ${jsonString}`
+
                             },
                         ],
                     },
@@ -39,16 +153,21 @@ function GamePhase1() {
                             Authorization: `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`,
                         },
                     }
-                );
+                );*/
 
-                const filmsList = response.data.choices[0].message.content
+                /*const filmsList = response.data.choices[0].message.content
                     .split('\n')
                     .filter((line) => line)
-                    .map((line) => line.replace(/^\d+\.\s*/, ''))
+                    .map((line) => line.replace(/^\d+\.\s*!/, ''))
                     .map((line) => {
                         const [title, popularity] = line.split(' - ');
                         return {title: title.replace(/"/g, '').trim(), popularity: popularity.trim()};
-                    });
+                    });*/
+                const filmsList = [
+                    {title: blockbusters, popularity: 'Blockbusters'},
+                    {title: known_films, popularity: 'Assez connus'},
+                    {title: niche_films, popularity: 'Niche'},
+                ];
 
                 setFilms(filmsList);
                 console.log('Films reçus:', filmsList);

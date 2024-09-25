@@ -85,6 +85,7 @@ a:hover {
 
 /* Boutons */
 button {
+  margin: 1%;
   background-color: var(--primary-color);
   color: #ffffff;
   padding: 12px 20px;
