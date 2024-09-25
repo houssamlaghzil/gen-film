@@ -1,73 +1,48 @@
-// JoinRoom.js
-import React, { useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { database } from '../../firebaseConfig';
-import { v4 as uuidv4 } from 'uuid';
-import { ref, get, child, set } from 'firebase/database';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { joinRoom } from './joinRoomLogic'; // Assuming you have this logic in a separate file
 
-export const joinRoom = (roomCode, pseudo, playerId, navigate) => {
-    const roomRef = ref(database);
-    get(child(roomRef, `rooms/${roomCode}`))
-        .then((snapshot) => {
-            if (snapshot.exists()) {
-                const players = snapshot.val().players || {};
-
-                // Vérifie si le joueur existe déjà dans la room
-                if (Object.values(players).some(player => player.pseudo === pseudo)) {
-                    console.error("Ce joueur est déjà dans la room.");
-                    alert("Ce joueur est déjà dans la room.");
-                    return;
-                }
-
-                const playerRef = ref(database, `rooms/${roomCode}/players/${playerId}`);
-                set(playerRef, {
-                    pseudo,
-                    hasFinished: false,
-                    scorePhase2: 0,
-                    scorePhase3: 0,
-                    bonusPoints: 0,
-                    totalScore: 0,
-                })
-                    .then(() => {
-                        console.log('Joueur ajouté à la room');
-                        navigate(`/waiting-room/${roomCode}`, {
-                            state: { roomCode, playerId, pseudo },
-                        });
-                    })
-                    .catch((error) => {
-                        console.error("Erreur lors de l'ajout du joueur:", error);
-                    });
-            } else {
-                console.error("La room n'existe pas");
-                alert("La room n'existe pas");
-                navigate('/');
-            }
-        })
-        .catch((error) => {
-            console.error("Erreur lors de la vérification de la room:", error);
-        });
-};
-
-// Le composant JoinRoom
 function JoinRoom() {
     const navigate = useNavigate();
-    const location = useLocation();
-    const { pseudo, roomCode } = location.state;
-    const playerId = Date.now() + uuidv4(); // ID unique basé sur le timestamp
+    const [roomCode, setRoomCode] = useState('');
+    const [pseudo, setPseudo] = useState('');
 
-    const hasExecutedRef = useRef(false);
-
-    useEffect(() => {
-        if (hasExecutedRef.current) {
-            console.log('useEffect déjà exécuté, on ne fait rien');
-            return;
+    const handleJoin = () => {
+        if (roomCode && pseudo) {
+            const playerId = Date.now(); // Generate a unique player ID
+            joinRoom(roomCode, pseudo, playerId, navigate);
+        } else {
+            alert("Please enter a room code and pseudo.");
         }
-        hasExecutedRef.current = true;
+    };
 
-        joinRoom(roomCode, pseudo, playerId, navigate);
-    }, [navigate, pseudo, roomCode]);
+    //si dans l'url on a un code "/join-room/" suivi d'un code alor on peut récupérer le code de la room
+if (window.location.pathname.includes('/join-room/')) {
+    const roomCodeFromUrl = window.location.pathname.split('/').pop();
+    if (roomCodeFromUrl !== roomCode) {
+        setRoomCode(roomCodeFromUrl);
+    }
+}
 
-    return <div>Connexion à la room...</div>;
+
+    return (
+        <div>
+            <h2>Rejoindre une room</h2>
+            <input
+                type="text"
+                placeholder="Code de la room"
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value)}
+            />
+            <input
+                type="text"
+                placeholder="Pseudo"
+                value={pseudo}
+                onChange={(e) => setPseudo(e.target.value)}
+            />
+            <button onClick={handleJoin}>Rejoindre la room</button>
+        </div>
+    );
 }
 
 export default JoinRoom;

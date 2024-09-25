@@ -14,7 +14,6 @@ import Scoreboard from './components/gen-films/Scoreboard';
 import FusionGuessing from "./components/gen-films/FusionGuessing";
 import './App.css';
 import Login from "./components/Login";
-import JoinRoomViaQRCode from "./components/JoinRoomViaQRCode";
 
 
 console.log('App.js loaded');
@@ -67,8 +66,6 @@ function App() {
                 <Routes>
                     <Route path="/login" element={<Login/>}/>
                     {/* New route for joining via QR code */}
-                    <Route path="/join-room/:roomCode/qrcode" element={<JoinRoomViaQRCode/>}/>
-                    {/* Other routes */}
                     {/* Protect the following routes */}
                     <Route
                         path="/"
@@ -83,6 +80,15 @@ function App() {
                         element={
                             <ProtectedRoute>
                                 <CreateRoom/>
+                            </ProtectedRoute>
+                        }
+                    />
+                    {/* Ajoute la nouvelle route pour JoinRoom avec un roomCode */}
+                    <Route
+                        path="/join-room/:roomCode"
+                        element={
+                            <ProtectedRoute>
+                                <JoinRoom />
                             </ProtectedRoute>
                         }
                     />
