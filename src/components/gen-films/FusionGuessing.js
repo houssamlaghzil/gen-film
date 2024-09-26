@@ -78,10 +78,10 @@ function FusionGuessing() {
 
         let score = 0;
         if (guesses.guess1 === correctFilms[0] || guesses.guess1 === correctFilms[1]) {
-            score += 1;
+            score += 10;
         }
         if (guesses.guess2 === correctFilms[0] || guesses.guess2 === correctFilms[1]) {
-            score += 1;
+            score += 25;
         }
         console.log('Calculated score:', score);
 

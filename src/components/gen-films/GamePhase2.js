@@ -45,7 +45,7 @@ function GamePhase2() {
         let score = 0;
         correctPrompts.forEach((correctFilm, index) => {
             if (guesses[index] === correctFilm) {
-                score += 1;
+                score += 10;
             }
         });
         console.log('Score calculé pour la Phase 2:', score);
