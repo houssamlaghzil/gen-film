@@ -8,7 +8,7 @@ console.log('Scoreboard.js chargé');
 
 function Scoreboard() {
     const [players, setPlayers] = useState([]);
-    const [prompts, setPrompts] = useState([]); // Ajout de cette ligne
+    const [prompts, setPrompts] = useState([]);
     const [mergedImageUrl, setMergedImageUrl] = useState('');
     const { roomCode } = useParams();
     const location = useLocation();
@@ -37,7 +37,6 @@ function Scoreboard() {
                 setPlayers(finalPlayersList);
                 console.log('Scores finaux:', finalPlayersList);
 
-                // Récupérer les prompts et images
                 const promptsRef = ref(database, `rooms/${roomCode}/prompts`);
                 const promptsSnapshot = await get(promptsRef);
                 const promptsData = promptsSnapshot.val();
@@ -47,7 +46,6 @@ function Scoreboard() {
                     console.log('Prompts reçus:', promptsList);
                 }
 
-                // Récupérer l'image fusionnée
                 const mergedImageRef = ref(database, `rooms/${roomCode}/mergedImage`);
                 const mergedImageSnapshot = await get(mergedImageRef);
                 const mergedImageData = mergedImageSnapshot.val();
