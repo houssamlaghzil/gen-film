@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { database } from '../../firebaseConfig';
-import { ref, onValue, update } from 'firebase/database';
+import { ref, onValue, update, get } from 'firebase/database';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
 console.log('GamePhase2.js chargé');
 
 function GamePhase2() {
-    const [prompts, setPrompts] = useState([]); // Ici, prompts contient les informations sur les images générées
+    const [prompts, setPrompts] = useState([]); // Contient les informations sur les images générées
     const [guesses, setGuesses] = useState({});
     const { roomCode } = useParams();
     const location = useLocation();
     const { playerId, pseudo } = location.state;
     const navigate = useNavigate();
+    const [correctPrompts, setCorrectPrompts] = useState([]); // Ajout pour stocker les prompts corrects
 
     useEffect(() => {
         console.log('Chargement des images générées pendant la Phase 1 pour les autres joueurs');
@@ -19,11 +20,11 @@ function GamePhase2() {
         onValue(promptsRef, (snapshot) => {
             const promptsData = snapshot.val();
             if (promptsData) {
-                // Ne pas afficher l'image du joueur actuel, seulement les autres joueurs
                 const otherPrompts = Object.values(promptsData).filter(
                     (prompt) => prompt.pseudo !== pseudo
                 );
                 setPrompts(otherPrompts);
+                setCorrectPrompts(otherPrompts.map(prompt => prompt.film)); // Stocker les films corrects
                 console.log('Images reçues:', otherPrompts);
             }
         });
@@ -37,14 +38,26 @@ function GamePhase2() {
     const handleSubmit = async () => {
         console.log('Soumission des devinettes pour la Phase 2:', guesses);
 
+        // Calcul des scores pour la phase 2
+        let score = 0;
+        correctPrompts.forEach((correctFilm, index) => {
+            if (guesses[index] === correctFilm) {
+                score += 1;
+            }
+        });
+
         try {
-            // Enregistrer les devinettes du joueur en base de données
-            await update(ref(database, `rooms/${roomCode}/players/${playerId}`), {
-                guesses,
+            // Mise à jour du score en base de données
+            const playerRef = ref(database, `rooms/${roomCode}/players/${playerId}`);
+            const currentPlayerData = (await get(playerRef)).val();
+            await update(playerRef, {
+                guesses, // Enregistrer les devinettes du joueur
+                scorePhase2: score, // Enregistrer le score pour la phase 2
+                totalScore: currentPlayerData.totalScore + score, // Mettre à jour le score total
                 hasFinished: true,
             });
 
-            console.log('Devine soumise avec succès.');
+            console.log('Devine soumise avec succès, score mis à jour.');
             navigate(`/game/phase3/${roomCode}`, { state: { playerId, pseudo } });
         } catch (error) {
             console.error('Erreur lors de la soumission des devinettes:', error);
