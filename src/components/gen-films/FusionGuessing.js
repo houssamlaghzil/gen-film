@@ -1,237 +1,188 @@
-// FusionGuessing.js
 import React, { useState, useEffect } from 'react';
 import { database } from '../../firebaseConfig';
+import { ref, get, onValue, off, update } from 'firebase/database';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import {
-    ref,
-    get,
-    set,
-    update,
-    onValue,
-    off,
-} from 'firebase/database';
 
-console.log('FusionGuessing.js loaded');
+console.log('FusionGuessing.js chargé');
 
 function FusionGuessing() {
-
-    const [loaded, setLoaded] = useState(false);
-
-    const [mergedImageUrl, setMergedImageUrl] = useState('');
-    const [guess1, setGuess1] = useState('');
-    const [guess2, setGuess2] = useState('');
+    const [imageUrl, setImageUrl] = useState('');
+    const [films, setFilms] = useState([]);
+    const [guesses, setGuesses] = useState({ guess1: '', guess2: '' });
     const [waiting, setWaiting] = useState(false);
     const navigate = useNavigate();
     const { roomCode } = useParams();
     const location = useLocation();
     const { playerId, pseudo } = location.state;
+    const [scenarist, setScenarist] = useState('');
+    const [players, setPlayers] = useState([]);
+    const [correctFilms, setCorrectFilms] = useState([]);
 
     useEffect(() => {
-        console.log('Loading merged image');
+        console.log('useEffect - Chargement de l\'image fusionnée et des films');
+        console.log('roomCode:', roomCode);
 
-        const mergedImageRef = ref(database, `rooms/${roomCode}/mergedImage`);
-
-        get(mergedImageRef)
-            .then((snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    setMergedImageUrl(data.imageUrl);
-                    console.log('Merged image loaded:', data.imageUrl);
-                } else {
-                    console.error('Merged image not found');
-                }
-            })
-            .catch((error) => {
-                console.error('Error loading merged image:', error);
-            });
-    }, [roomCode]);
-
-    useEffect(() => {
-        // Listen to check if all players have finished fusion guessing
-        const playersRef = ref(database, `rooms/${roomCode}/players`);
-        const handlePlayersValue = (snapshot) => {
-            const playersData = snapshot.val();
-            if (playersData) {
-                const allFinished = Object.values(playersData).every(
-                    (player) => player.hasFinishedFusionGuessing
-                );
-                if (allFinished) {
-                    console.log('All players have finished fusion guessing');
-                    // Proceed to calculate final scores
-                    calculateFinalScores();
-                } else {
-                    console.log('Waiting for other players to finish fusion guessing');
-                }
+        const fetchScenaristAndPlayers = async () => {
+            console.log('Fetching scenarist and players');
+            const roomRef = ref(database, `rooms/${roomCode}`);
+            const roomSnapshot = await get(roomRef);
+            const roomData = roomSnapshot.val();
+            if (roomData) {
+                setScenarist(roomData.scenaristPseudo);
+                console.log('scenaristPseudo:', roomData.scenaristPseudo);
+                setPlayers(roomData.players || []);
+                console.log('Players:', roomData.players || []);
+                setCorrectFilms(roomData.mergedImage.films || []);
+                console.log('Films fusionnés:', roomData.mergedImage.films || []);
             }
         };
-        onValue(playersRef, handlePlayersValue);
 
-        return () => {
-            off(playersRef, 'value', handlePlayersValue);
-        };
-    }, [roomCode]);
+        fetchScenaristAndPlayers();
 
-    const calculateFinalScores = async () => {
-        console.log('Calculating final scores');
-        try {
-            const playersRef = ref(database, `rooms/${roomCode}/players`);
-            const playersSnapshot = await get(playersRef);
-            const playersData = playersSnapshot.val();
-
-            const fusionGuessesRef = ref(database, `rooms/${roomCode}/fusionGuesses`);
-            const fusionGuessesSnapshot = await get(fusionGuessesRef);
-            const fusionGuessesData = fusionGuessesSnapshot.val();
-
+        const fetchFusionData = async () => {
+            console.log('Fetching fusion data');
             const mergedImageRef = ref(database, `rooms/${roomCode}/mergedImage`);
             const mergedImageSnapshot = await get(mergedImageRef);
             const mergedImageData = mergedImageSnapshot.val();
-            const fusedFilms = mergedImageData.films.map((film) =>
-                film.toLowerCase().trim()
-            );
 
-            // Calculate scores for fusion guessing
-            const updatedPlayers = {};
-            for (let [pId, player] of Object.entries(playersData)) {
-                let scorePhase3 = player.scorePhase3 || 0;
-                let bonusPoints = player.bonusPoints || 0;
+            if (mergedImageData) {
+                setImageUrl(mergedImageData.imageUrl);
+                console.log('Image fusionnée chargée:', mergedImageData.imageUrl);
 
-                // Skip the scenarist
-                if (pId === mergedImageData.scenaristId) {
-                    continue;
-                }
+                const filmsRef = ref(database, `rooms/${roomCode}/films`);
+                const filmsSnapshot = await get(filmsRef);
+                const filmsData = filmsSnapshot.val();
 
-                const playerGuesses = fusionGuessesData ? fusionGuessesData[pId] : {};
-                const guess1 = playerGuesses.guess1.toLowerCase().trim();
-                const guess2 = playerGuesses.guess2.toLowerCase().trim();
-
-                let correctGuesses = 0;
-                if (fusedFilms.includes(guess1)) correctGuesses += 1;
-                if (fusedFilms.includes(guess2)) correctGuesses += 1;
-
-                if (correctGuesses === 1) {
-                    scorePhase3 += 5;
-                } else if (correctGuesses === 2) {
-                    scorePhase3 += 10;
-                }
-
-                updatedPlayers[pId] = {
-                    ...player,
-                    scorePhase3,
-                    bonusPoints,
-                };
+                const filmsArray = Object.values(filmsData);
+                setFilms(filmsArray);
+                console.log('Films chargés:', filmsArray);
             }
+        };
 
-            // Update players' scores in Firebase
-            for (let [pId, player] of Object.entries(updatedPlayers)) {
-                const playerRef = ref(database, `rooms/${roomCode}/players/${pId}`);
-                await update(playerRef, {
-                    scorePhase3: player.scorePhase3,
-                    bonusPoints: player.bonusPoints,
-                });
-            }
+        fetchFusionData();
 
-            // Update scenarist's points
-            const scenaristId = mergedImageData.scenaristId;
-            let scenaristScore = playersData[scenaristId].scorePhase3 || 0;
-            const numPlayersGuessedBoth = Object.values(fusionGuessesData).reduce(
-                (count, guesses) => {
-                    const g1 = guesses.guess1.toLowerCase().trim();
-                    const g2 = guesses.guess2.toLowerCase().trim();
-                    if (
-                        fusedFilms.includes(g1) &&
-                        fusedFilms.includes(g2) &&
-                        guesses.playerId !== scenaristId
-                    ) {
-                        return count + 1;
-                    }
-                    return count;
-                },
-                0
-            );
-            scenaristScore += 10 * numPlayersGuessedBoth;
+        return () => {
+            console.log('Cleaning up listeners');
+            off(ref(database, `rooms/${roomCode}/mergedImage`));
+            off(ref(database, `rooms/${roomCode}/films`));
+        };
+    }, [roomCode]);
 
-            const scenaristRef = ref(database, `rooms/${roomCode}/players/${scenaristId}`);
-            await update(scenaristRef, { scorePhase3: scenaristScore });
+    const handleSubmitGuesses = async () => {
+        console.log('handleSubmitGuesses - guesses:', guesses);
 
-            // Update game phase to final
-            const roomRef = ref(database, `rooms/${roomCode}`);
-            await update(roomRef, { phase: 'final' });
-
-            // Navigate to scoreboard
-            navigate(`/scoreboard/${roomCode}`, { state: { playerId, pseudo } });
-        } catch (error) {
-            console.error('Error calculating final scores:', error);
+        if (!guesses.guess1 || !guesses.guess2) {
+            alert('Veuillez sélectionner vos devinettes pour les deux films.');
+            return;
         }
-    };
 
-    const handleSubmit = async () => {
-        console.log('Submitting fusion guesses:', { guess1, guess2 });
+        let score = 0;
+        if (guesses.guess1 === correctFilms[0] || guesses.guess1 === correctFilms[1]) {
+            score += 1;
+        }
+        if (guesses.guess2 === correctFilms[0] || guesses.guess2 === correctFilms[1]) {
+            score += 1;
+        }
+        console.log('Calculated score:', score);
 
         try {
-            // Save guesses in Firebase
-            await set(ref(database, `rooms/${roomCode}/fusionGuesses/${playerId}`), {
-                guess1,
-                guess2,
+            console.log('Updating player scores and guesses in the database');
+            const playerRef = ref(database, `rooms/${roomCode}/players/${playerId}`);
+            await update(playerRef, {
+                guesses: {
+                    guess1: guesses.guess1,
+                    guess2: guesses.guess2,
+                },
+                scorePhase2: score, // Enregistrement du score pour cette phase
+                totalScore: (await get(playerRef)).val().totalScore + score, // Mise à jour du score total
+                hasFinishedFusionGuessing: true, // Indiquer que ce joueur a terminé la phase de devinette
             });
 
-            // Update player's state to indicate they have finished fusion guessing
-            await update(ref(database, `rooms/${roomCode}/players/${playerId}`), {
-                hasFinishedFusionGuessing: true,
-            });
-
-            // Set waiting state
+            console.log('Guesses and scores successfully submitted:', guesses);
             setWaiting(true);
         } catch (error) {
-            console.error('Error submitting fusion guesses:', error);
+            console.error('Error submitting guesses:', error);
         }
     };
+
+    useEffect(() => {
+        console.log('useEffect - Checking if all players finished guessing');
+        const guessesRef = ref(database, `rooms/${roomCode}/players`);
+        onValue(guessesRef, (snapshot) => {
+            const playersData = snapshot.val();
+            const totalPlayers = Object.keys(playersData).length - 1; // Ne compte pas le scénariste
+            const totalGuesses = Object.values(playersData).filter(player => player.hasFinishedFusionGuessing).length;
+
+            if (totalGuesses >= totalPlayers) {
+                console.log('All players have finished guessing');
+                navigate(`/scoreboard/${roomCode}`, { state: { playerId, pseudo } });
+            }
+        });
+
+        return () => {
+            console.log('Cleaning up guessesRef listener');
+            off(guessesRef);
+        };
+    }, [players, roomCode, navigate, playerId, pseudo]);
+
+    if (pseudo === scenarist) {
+        return (
+            <div>
+                <h2>Phase de devinette des films fusionnés</h2>
+                {imageUrl && <img src={imageUrl} alt="Fusion Image" />}
+                <p>Vous êtes le scénariste, vous ne pouvez pas deviner.</p>
+            </div>
+        );
+    }
 
     if (waiting) {
         return (
             <div>
-                <h2>Fusion Guessing: Waiting for Other Players</h2>
-                <p>Your answers have been submitted. Waiting for other players to finish...</p>
+                <h2>Phase de devinette des films fusionnés</h2>
+                {imageUrl && <img src={imageUrl} alt="Fusion Image" />}
+                <p>En attente des autres joueurs.</p>
             </div>
         );
     }
 
     return (
         <div>
-            <h2>Guess the Fused Films</h2>
-            <p>
-                Look at the fused image below and try to guess the two films that were fused.
-                Enter your guesses in the fields provided.
-            </p>
-            {mergedImageUrl ? (
-                <div>
-                    <img src={mergedImageUrl} alt="Fused Image" className={loaded ? 'loaded' : ''}
-                         onLoad={() => setLoaded(true)}/>
-                    <div>
-                        <input
-                            type="text"
-                            placeholder="First Film"
-                            value={guess1}
-                            onChange={(e) => setGuess1(e.target.value)}
-                        />
-                    </div>
-                    <div>
-                        <input
-                            type="text"
-                            placeholder="Second Film"
-                            value={guess2}
-                            onChange={(e) => setGuess2(e.target.value)}
-                        />
-                    </div>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={!guess1.trim() || !guess2.trim()}
+            <h2>Phase de devinette des films fusionnés</h2>
+            {imageUrl && <img src={imageUrl} alt="Fusion Image" />}
+            <p>Essayez de deviner quels films ont été fusionnés !</p>
+            <ul>
+                <li>
+                    <label>Devine 1</label>
+                    <select
+                        value={guesses.guess1}
+                        onChange={(e) => {
+                            setGuesses({ ...guesses, guess1: e.target.value });
+                            console.log('guesses.guess1 updated:', e.target.value);
+                        }}
                     >
-                        Submit My Answers
-                    </button>
-                </div>
-            ) : (
-                <p>Loading fused image...</p>
-            )}
+                        <option value="">Sélectionnez un film</option>
+                        {films.map((film, index) => (
+                            <option key={index} value={film}>{film}</option>
+                        ))}
+                    </select>
+                </li>
+                <li>
+                    <label>Devine 2</label>
+                    <select
+                        value={guesses.guess2}
+                        onChange={(e) => {
+                            setGuesses({ ...guesses, guess2: e.target.value });
+                            console.log('guesses.guess2 updated:', e.target.value);
+                        }}
+                    >
+                        <option value="">Sélectionnez un film</option>
+                        {films.map((film, index) => (
+                            <option key={index} value={film}>{film}</option>
+                        ))}
+                    </select>
+                </li>
+            </ul>
+            <button onClick={handleSubmitGuesses}>Soumettre vos devinettes</button>
         </div>
     );
 }

@@ -13,7 +13,11 @@ import FusionPrompt from './components/gen-films/FusionPrompt';
 import Scoreboard from './components/gen-films/Scoreboard';
 import FusionGuessing from "./components/gen-films/FusionGuessing";
 import './App.css';
+import './css/scoreboard.css'
+import './css/SpectatorPage.css'
 import Login from "./components/Login";
+import SpectatorPage from "./components/gen-films/SpectatorPage/SpectatorPage";
+import AllRoomsPage from "./components/gen-films/SpectatorPage/AllRoomsPage";
 
 
 console.log('App.js loaded');
@@ -156,6 +160,8 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
+                    <Route path="/spectator/:roomCode" element={<SpectatorPage />} />
+                    <Route path="/AllRoomsPage" element={<AllRoomsPage />} />
                 </Routes>
             </div>
         </Router>

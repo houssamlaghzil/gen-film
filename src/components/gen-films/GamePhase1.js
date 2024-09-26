@@ -1,172 +1,51 @@
-// GamePhase1.js
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import {database} from '../../firebaseConfig';
-import {useNavigate, useParams, useLocation} from 'react-router-dom';
-import {ref, set, update} from 'firebase/database';
+import { database } from '../../firebaseConfig';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { ref, set, update, get } from 'firebase/database';
 
 console.log('GamePhase1.js chargé');
 
 function GamePhase1() {
     const [films, setFilms] = useState([]);
     const [selectedFilm, setSelectedFilm] = useState('');
-    const [prompt, setPrompt] = useState('');
+    const [description, setDescription] = useState('');
+    const [graphicStyle, setGraphicStyle] = useState('');
+    const [details, setDetails] = useState('');
+    const [generatingImage, setGeneratingImage] = useState(false);
     const navigate = useNavigate();
-    const {roomCode} = useParams();
+    const { roomCode } = useParams();
     const location = useLocation();
-    const {playerId, pseudo} = location.state;
+    const { playerId, pseudo } = location.state;
 
     useEffect(() => {
-        console.log('Chargement des films depuis l\'API GPT-3.5');
-        //re cupere ce json et mes le dans une variable "src/list de films/listfilms.json"
-        const MyJson =
-            {
-                "blockbusters": [
-                    "Avatar",
-                    "Avengers: Endgame",
-                    "Titanic",
-                    "Jurassic Park",
-                    "The Lion King",
-                    "Star Wars: The Force Awakens",
-                    "Furious 7",
-                    "The Dark Knight",
-                    "Harry Potter and the Sorcerer's Stone",
-                    "Frozen",
-                    "Black Panther",
-                    "The Avengers",
-                    "Spider-Man: No Way Home",
-                    "Inception",
-                    "The Lord of the Rings: The Return of the King",
-                    "Pirates of the Caribbean: Dead Man's Chest",
-                    "The Matrix",
-                    "Finding Nemo",
-                    "Toy Story 3",
-                    "Transformers: Dark of the Moon",
-                    "The Hunger Games",
-                    "The Twilight Saga: Breaking Dawn Part 2",
-                    "Jumanji: Welcome to the Jungle",
-                    "Iron Man 3",
-                    "Shrek 2",
-                    "Batman v Superman: Dawn of Justice",
-                    "Captain America: Civil War",
-                    "Aquaman",
-                    "Zootopia",
-                    "Beauty and the Beast (2017)"
-                ],
-                "known_films": [
-                    "The Grand Budapest Hotel",
-                    "Donnie Darko",
-                    "Whiplash",
-                    "The King's Speech",
-                    "A Beautiful Mind",
-                    "Moonlight",
-                    "Her",
-                    "Birdman",
-                    "Little Miss Sunshine",
-                    "The Social Network",
-                    "The Imitation Game",
-                    "Prisoners",
-                    "The Revenant",
-                    "Gone Girl",
-                    "Slumdog Millionaire",
-                    "Django Unchained",
-                    "Mad Max: Fury Road",
-                    "La La Land",
-                    "12 Years a Slave",
-                    "The Theory of Everything",
-                    "Ex Machina",
-                    "Drive",
-                    "The Big Short",
-                    "Room",
-                    "No Country for Old Men",
-                    "The Shape of Water",
-                    "The Hurt Locker",
-                    "The Fighter",
-                    "Memento",
-                    "Spotlight"
-                ],
-                "niche_films": [
-                    "The Lighthouse",
-                    "A Ghost Story",
-                    "Under the Skin",
-                    "The Florida Project",
-                    "Enemy",
-                    "The Witch",
-                    "Enter the Void",
-                    "Only Lovers Left Alive",
-                    "Annihilation",
-                    "Swiss Army Man",
-                    "Blue Ruin",
-                    "Tangerine",
-                    "It Comes at Night",
-                    "The Turin Horse",
-                    "The Endless",
-                    "Upstream Color",
-                    "American Honey",
-                    "Raw",
-                    "Climax",
-                    "Mandy",
-                    "Under the Silver Lake",
-                    "First Reformed",
-                    "Colossal",
-                    "The Art of Self-Defense",
-                    "Uncut Gems",
-                    "The Wind",
-                    "Nightcrawler",
-                    "The Lobster",
-                    "A Girl Walks Home Alone at Night",
-                    "Beyond the Black Rainbow"
-                ]
-            }
+        console.log('useEffect - Loading films from a source API');
+        console.log('roomCode:', roomCode);
+        console.log('playerId:', playerId);
+        console.log('pseudo:', pseudo);
 
+        const MyJson = {
+            "blockbusters": [
+                "Avatar", "Avengers: Endgame", "Titanic", "Jurassic Park", "Le Roi Lion"
+            ],
+            "films_connus": [
+                "The Grand Budapest Hotel", "Donnie Darko", "Whiplash", "Le Discours d'un Roi"
+            ],
+            "films_de_niche": [
+                "The Lighthouse", "A Ghost Story", "Under the Skin"
+            ]
+        };
 
-        // Fonction pour récupérer les films depuis l'API OpenAI
         const fetchFilms = async () => {
             try {
-                //choisi un film aleatoirement dans le json 1 par categorie
                 const blockbusters = MyJson.blockbusters[Math.floor(Math.random() * MyJson.blockbusters.length)];
-                const known_films = MyJson.known_films[Math.floor(Math.random() * MyJson.known_films.length)];
-                const niche_films = MyJson.niche_films[Math.floor(Math.random() * MyJson.niche_films.length)];
+                const films_connus = MyJson.films_connus[Math.floor(Math.random() * MyJson.films_connus.length)];
+                const films_de_niche = MyJson.films_de_niche[Math.floor(Math.random() * MyJson.films_de_niche.length)];
 
-
-                console.log('Récupération des films depuis l\'API GPT-3.5');
-/*                const jsonString = JSON.stringify(MyJson);
-                let response;
-                response = await axios.post(
-                    'https://api.openai.com/v1/chat/completions',
-                    {
-                        model: 'gpt-3.5-turbo',
-                        messages: [
-                            {
-                                role: 'user',
-                                content: `Donne-moi une liste de 3 films de popularités différentes  piocher aleatoirements
-                                (Blockbusters, assez connus, niche). Pour chaque film, donne le titre et son niveau de popularité au format :
-                                 "Titre du film" - popularité.
-                                 Inspire-toi de ce JSON : ${jsonString}`
-
-                            },
-                        ],
-                    },
-                    {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`,
-                        },
-                    }
-                );*/
-
-                /*const filmsList = response.data.choices[0].message.content
-                    .split('\n')
-                    .filter((line) => line)
-                    .map((line) => line.replace(/^\d+\.\s*!/, ''))
-                    .map((line) => {
-                        const [title, popularity] = line.split(' - ');
-                        return {title: title.replace(/"/g, '').trim(), popularity: popularity.trim()};
-                    });*/
                 const filmsList = [
-                    {title: blockbusters, popularity: 'Blockbusters'},
-                    {title: known_films, popularity: 'Assez connus'},
-                    {title: niche_films, popularity: 'Niche'},
+                    { title: blockbusters, popularity: 'Blockbuster' },
+                    { title: films_connus, popularity: 'Film connu' },
+                    { title: films_de_niche, popularity: 'Film de niche' }
                 ];
 
                 setFilms(filmsList);
@@ -176,23 +55,32 @@ function GamePhase1() {
             }
         };
 
-
-        fetchFilms().then(r => console.log('Films récupérés'));
+        fetchFilms().then(() => console.log('Films récupérés'));
     }, []);
 
     const handleSubmit = async () => {
-        console.log('Envoi du prompt pour le film:', selectedFilm);
+        console.log('handleSubmit - Film selected:', selectedFilm);
+        console.log('Description:', description);
+        console.log('GraphicStyle:', graphicStyle);
+        console.log('Details:', details);
+
+        if (!description || !graphicStyle || !details || !selectedFilm) {
+            alert('Veuillez remplir tous les champs et sélectionner un film avant de générer l\'image.');
+            return;
+        }
+
+        setGeneratingImage(true);
 
         try {
-            // Appeler l'API GPT-3.5 pour améliorer le prompt
-            const adjustedPromptResponse = await axios.post(
+            console.log('Génération du prompt optimisé pour DALL·E 3');
+            const gptResponse = await axios.post(
                 'https://api.openai.com/v1/chat/completions',
                 {
                     model: 'gpt-3.5-turbo',
                     messages: [
                         {
                             role: 'user',
-                            content: `Améliore ce prompt en optimisent les détails sur l'arrière-plan et le style graphique, en ajoutant des detail qui colle avec le prompte d'origine, pour obtenir un prompte qui tire le meilleur de dall-e 3 (assure toi que ce prompte soit accepter par dall-e modifi les aspect qui pourais bloquer pour que sa passe): ${prompt}`,
+                            content: `Je veux une affiche de film qui montre : ${description}. Le style graphique utilisé doit être : ${graphicStyle}. Les détails les plus visibles seront : ${details}. Génère-moi un prompt en anglais optimisé pour DALL·E 3 qui respectera ces trois éléments. Le style de l'image doit être cohérent avec ce film : ${selectedFilm.title}.`,
                         },
                     ],
                 },
@@ -204,15 +92,13 @@ function GamePhase1() {
                 }
             );
 
-            const adjustedPrompt =
-                adjustedPromptResponse.data.choices[0].message.content;
-            console.log('Prompt ajusté pour DALL·E:', adjustedPrompt);
+            const generatedPrompt = gptResponse.data.choices[0].message.content;
+            console.log('Prompt généré pour DALL·E 3:', generatedPrompt);
 
-            // Appeler l'API DALL·E pour générer l'image avec le prompt amélioré
             const dalleResponse = await axios.post(
                 'https://api.openai.com/v1/images/generations',
                 {
-                    prompt: adjustedPrompt,
+                    prompt: generatedPrompt,
                     n: 1,
                     size: '256x256',
                 },
@@ -227,37 +113,43 @@ function GamePhase1() {
             const imageUrl = dalleResponse.data.data[0].url;
             console.log('Image générée URL:', imageUrl);
 
-            // Enregistrer le prompt et l'image dans Firebase
             await set(ref(database, `rooms/${roomCode}/prompts/${playerId}`), {
                 film: selectedFilm.title,
                 filmPopularity: selectedFilm.popularity,
-                prompt, // On enregistre le prompt original
+                prompt: generatedPrompt,
                 imageUrl,
                 pseudo,
             });
 
-            // Mettre à jour l'état du joueur et ajouter le film sélectionné
+            const filmsRef = ref(database, `rooms/${roomCode}/films`);
+            const filmsSnapshot = await get(filmsRef);
+            const existingFilms = filmsSnapshot.exists() ? filmsSnapshot.val() : [];
+
+            const updatedFilms = { ...existingFilms };
+            updatedFilms[`film_${playerId}`] = selectedFilm.title;
+            await update(filmsRef, updatedFilms);
+
+            console.log('Film ajouté à la liste globale des films:', updatedFilms);
+
+            // Marquer le joueur comme ayant terminé la phase 1
             await update(ref(database, `rooms/${roomCode}/players/${playerId}`), {
-                hasFinished: true,
+                hasFinishedPhase1: true,
                 film: selectedFilm.title,
                 filmPopularity: selectedFilm.popularity,
             });
 
-            navigate(`/game/phase2/${roomCode}`, {state: {playerId, pseudo}});
+            navigate(`/game/phase2/${roomCode}`, { state: { playerId, pseudo } });
         } catch (error) {
-            console.error('Erreur lors du traitement du prompt:', error);
+            console.error('Erreur lors de la génération de l\'image:', error);
+        } finally {
+            setGeneratingImage(false);
         }
     };
 
-
     return (
         <div>
-            <h2>Phase 1 : Choisissez un film et rédigez un prompt</h2>
-            <p>
-                Sélectionnez un film parmi la liste ci-dessous et rédigez un prompt
-                décrivant une scène ou un élément du film. Votre prompt sera amélioré
-                pour générer une image attrayante.
-            </p>
+            <h2>Phase 1 : Choisissez un film et rédigez les détails de l'affiche</h2>
+            <p>Sélectionnez un film parmi la liste ci-dessous, puis décrivez l'affiche que vous souhaitez voir générée.</p>
             {films.length > 0 ? (
                 <div>
                     <h3>Films proposés :</h3>
@@ -268,20 +160,46 @@ function GamePhase1() {
                                     type="radio"
                                     name="film"
                                     value={index}
-                                    onChange={() => setSelectedFilm(film)}
+                                    onChange={() => {
+                                        setSelectedFilm(film);
+                                        console.log('Selected film:', film);
+                                    }}
                                 />
                                 {film.title} ({film.popularity})
                             </li>
                         ))}
-
                     </ul>
+
+                    <h3>Décrire l'affiche :</h3>
                     <textarea
-                        placeholder="Rédigez votre prompt ici"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
+                        placeholder="Décrivez ce qu'on verra sur l'affiche"
+                        value={description}
+                        onChange={(e) => {
+                            setDescription(e.target.value);
+                            console.log('Description updated:', e.target.value);
+                        }}
                     />
-                    <button onClick={handleSubmit} disabled={!selectedFilm || !prompt}>
-                        Envoyer
+
+                    <textarea
+                        placeholder="Définissez le style graphique"
+                        value={graphicStyle}
+                        onChange={(e) => {
+                            setGraphicStyle(e.target.value);
+                            console.log('Graphic style updated:', e.target.value);
+                        }}
+                    />
+
+                    <textarea
+                        placeholder="Quels détails ressortiront le plus ?"
+                        value={details}
+                        onChange={(e) => {
+                            setDetails(e.target.value);
+                            console.log('Details updated:', e.target.value);
+                        }}
+                    />
+
+                    <button onClick={handleSubmit} disabled={generatingImage}>
+                        {generatingImage ? 'Génération en cours...' : 'Envoyer et générer l\'image'}
                     </button>
                 </div>
             ) : (

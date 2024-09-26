@@ -58,15 +58,15 @@ function WaitingRoom() {
             <h3>Scan pour rejoindre la room:</h3>
             <QRCodeSVG value={roomUrl} /> {/* QR Code generation */}
 
-            <select onChange={(e) => setGameMode(e.target.value)}>
-                <option value="senariste">Sénariste</option>
+            <select defaultValue="senariste" onChange={(e) => setGameMode(e.target.value)}>
                 <option value="combat_de_sorcier">Combat de Sorcier</option>
+                <option value="senariste">Sénariste</option>
             </select>
 
-            {players.length >= 3 && (
+            {players.length >= 2 && (
                 <button onClick={startGame}>Commencer la partie</button>
             )}
-            {players.length < 3 && <p>En attente d'autres joueurs...</p>}
+            {players.length < 2 && <p>En attente d'autres joueurs...</p>}
         </div>
     );
 }
