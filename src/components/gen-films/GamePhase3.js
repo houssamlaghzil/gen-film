@@ -1,9 +1,8 @@
-// GamePhase3.js
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { database } from '../../firebaseConfig';
+import { ref, get, update, onValue, off } from 'firebase/database';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { ref, get, update, onValue, off, set } from 'firebase/database';
+import axios from 'axios';
 
 console.log('GamePhase3.js chargé');
 
@@ -13,69 +12,81 @@ function GamePhase3() {
     const [selectedFilms, setSelectedFilms] = useState([]);
     const [fusionPrompt, setFusionPrompt] = useState('');
     const [generatingImage, setGeneratingImage] = useState(false);
+    const [scenarist, setScenarist] = useState(null);
+    const [imageReady, setImageReady] = useState(false); // New state to track if the image is ready
     const navigate = useNavigate();
     const { roomCode } = useParams();
     const location = useLocation();
     const { playerId, pseudo } = location.state;
 
-    // Vérifier à plusieurs reprises si le scénariste est bien assigné
-    const checkScenarist = async () => {
-        const roomRef = ref(database, `rooms/${roomCode}`);
-        const roomSnapshot = await get(roomRef);
-        const roomData = roomSnapshot.val();
-        if (roomData && roomData.scenaristId) {
-            return roomData.scenaristId;
-        }
-        return null;
-    };
+    useEffect(() => {
+        console.log('Vérification du scénariste et chargement des films sélectionnés');
 
-    const determineScenarist = () => {
-        checkScenarist().then((scenaristId) => {
-            if (scenaristId) {
-                if (scenaristId === playerId) {
+        const designateScenarist = async () => {
+            const playersRef = ref(database, `rooms/${roomCode}/players`);
+            const playersSnapshot = await get(playersRef);
+            const playersData = playersSnapshot.val();
+
+            if (playersData) {
+                const sortedPlayers = Object.values(playersData).sort((a, b) => b.totalScore - a.totalScore);
+                const highestScore = sortedPlayers[0].totalScore;
+
+                const topScorers = sortedPlayers.filter(player => player.totalScore === highestScore);
+                const chosenScenarist = topScorers[Math.floor(Math.random() * topScorers.length)];
+
+                console.log(`Scénariste désigné: ${chosenScenarist.pseudo}`);
+
+                await update(ref(database, `rooms/${roomCode}`), {
+                    scenaristPseudo: chosenScenarist.pseudo
+                });
+
+                setScenarist(chosenScenarist.pseudo);
+
+                if (chosenScenarist.pseudo === pseudo) {
                     setIsScenarist(true);
                 }
-                console.log('Scénariste trouvé:', scenaristId);
-            } else {
-                console.log('Aucun scénariste trouvé, nouvelle vérification dans 2 secondes...');
-                setTimeout(determineScenarist, 2000); // Répéter toutes les 2 secondes
             }
-        });
-    };
+        };
 
-    useEffect(() => {
-        console.log('Détermination du scénariste');
-        determineScenarist();
+        // Charger la liste globale des films sélectionnés par les joueurs
+        const fetchFilms = async () => {
+            const filmsRef = ref(database, `rooms/${roomCode}/films`);
+            const filmsSnapshot = await get(filmsRef);
+            const filmsData = filmsSnapshot.val();
 
-        const playersRef = ref(database, `rooms/${roomCode}/players`);
-        get(playersRef)
-            .then((playersSnapshot) => {
-                const playersData = playersSnapshot.val();
-                if (playersData) {
-                    const filmsList = Object.values(playersData)
-                        .map((player) => player.film)
-                        .filter(Boolean);
-                    setFilms(filmsList);
-                    console.log('Films pour la fusion:', filmsList);
+            if (filmsData) {
+                const filmsArray = Object.values(filmsData);
+                setFilms(filmsArray);
+                console.log('Films récupérés pour la fusion:', filmsArray);
+            }
+        };
+
+        const roomRef = ref(database, `rooms/${roomCode}`);
+        onValue(roomRef, (snapshot) => {
+            const roomData = snapshot.val();
+            if (roomData && roomData.scenaristPseudo) {
+                setScenarist(roomData.scenaristPseudo);
+                if (roomData.scenaristPseudo === pseudo) {
+                    setIsScenarist(true);
                 }
-            })
-            .catch((error) => {
-                console.error('Erreur lors de la récupération des joueurs:', error);
-            });
+            } else {
+                designateScenarist();
+            }
 
-        const mergedImageRef = ref(database, `rooms/${roomCode}/mergedImage`);
-        const handleMergedImageValue = (snapshot) => {
-            if (snapshot.exists()) {
-                console.log('Le scénariste a généré l\'image fusionnée');
+            // Check if the merged image is ready and redirect the players
+            if (roomData && roomData.mergedImage && roomData.mergedImage.imageUrl) {
+                setImageReady(true);
+                console.log('Image fusionnée prête, redirection des joueurs.');
                 navigate(`/fusion-guessing/${roomCode}`, { state: { playerId, pseudo } });
             }
-        };
-        onValue(mergedImageRef, handleMergedImageValue);
+        });
+
+        fetchFilms();
 
         return () => {
-            off(mergedImageRef, 'value', handleMergedImageValue);
+            off(roomRef);
         };
-    }, [roomCode, playerId, navigate, pseudo]);
+    }, [roomCode, pseudo, navigate]);
 
     const handleFilmSelection = (film) => {
         let updatedSelection = [...selectedFilms];
@@ -85,7 +96,7 @@ function GamePhase3() {
             updatedSelection.push(film);
         }
         setSelectedFilms(updatedSelection);
-        console.log('Films sélectionnés pour la fusion:', updatedSelection);
+        console.log('Films sélectionnés:', updatedSelection);
     };
 
     const handleGenerateFusionImage = async () => {
@@ -95,10 +106,9 @@ function GamePhase3() {
         }
 
         setGeneratingImage(true);
+        console.log('Génération de l\'image de fusion pour les films:', selectedFilms);
 
         try {
-            console.log('Génération de l\'image fusionnée avec le prompt:', fusionPrompt);
-
             const dalleResponse = await axios.post(
                 'https://api.openai.com/v1/images/generations',
                 {
@@ -115,22 +125,33 @@ function GamePhase3() {
             );
 
             const imageUrl = dalleResponse.data.data[0].url;
-            console.log('Image fusionnée générée URL:', imageUrl);
-
             const mergedImageRef = ref(database, `rooms/${roomCode}/mergedImage`);
-            await set(mergedImageRef, {
+            await update(mergedImageRef, {
                 imageUrl,
                 prompt: fusionPrompt,
                 films: selectedFilms,
-                scenaristId: playerId,
+                scenaristPseudo: scenarist,
             });
 
-            setGeneratingImage(false);
+            console.log('Image fusionnée générée et enregistrée:', imageUrl);
+
+            // Rediriger les joueurs vers la Phase de devinette
+            setImageReady(true);
+            navigate(`/fusion-guessing/${roomCode}`, { state: { playerId, pseudo } });
         } catch (error) {
             console.error('Erreur lors de la génération de l\'image fusionnée:', error);
             setGeneratingImage(false);
         }
     };
+
+    if (scenarist && !isScenarist && !imageReady) {
+        return (
+            <div>
+                <h2>Phase 3 : Fusion des films</h2>
+                <p>En attente que {scenarist} fusionne deux films...</p>
+            </div>
+        );
+    }
 
     if (isScenarist) {
         return (
@@ -170,7 +191,7 @@ function GamePhase3() {
         return (
             <div>
                 <h2>Phase 3 : Fusion des films</h2>
-                <p>En attente que le scénariste fusionne deux films...</p>
+                <p>En attente que le scénariste soit désigné...</p>
             </div>
         );
     }

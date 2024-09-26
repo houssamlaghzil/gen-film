@@ -1,107 +1,49 @@
-// Scoreboard.js
 import React, { useState, useEffect } from 'react';
 import { database } from '../../firebaseConfig';
+import { ref, onValue } from 'firebase/database';
 import { useParams, useLocation } from 'react-router-dom';
-import { ref, get } from 'firebase/database';
 
 console.log('Scoreboard.js chargé');
 
 function Scoreboard() {
     const [players, setPlayers] = useState([]);
-    const [prompts, setPrompts] = useState([]);
-    const [mergedImageUrl, setMergedImageUrl] = useState('');
+    const [mergedImage, setMergedImage] = useState('');
     const { roomCode } = useParams();
     const location = useLocation();
-    const { playerId, pseudo } = location.state;
+    const { pseudo } = location.state;
 
     useEffect(() => {
-        console.log('Chargement des scores pour la room:', roomCode);
-
-        const fetchScoresAndPrompts = async () => {
-            try {
-                const playersRef = ref(database, `rooms/${roomCode}/players`);
-                const playersSnapshot = await get(playersRef);
-                const playersData = playersSnapshot.val();
-
-                const finalPlayersList = Object.values(playersData).map((player) => ({
-                    pseudo: player.pseudo,
-                    scorePhase2: player.scorePhase2 || 0,
-                    scorePhase3: player.scorePhase3 || 0,
-                    bonusPoints: player.bonusPoints || 0,
-                    totalScore:
-                        (player.scorePhase2 || 0) +
-                        (player.scorePhase3 || 0) +
-                        (player.bonusPoints || 0),
-                }));
-
-                setPlayers(finalPlayersList);
-                console.log('Scores finaux:', finalPlayersList);
-
-                const promptsRef = ref(database, `rooms/${roomCode}/prompts`);
-                const promptsSnapshot = await get(promptsRef);
-                const promptsData = promptsSnapshot.val();
-                if (promptsData) {
-                    const promptsList = Object.values(promptsData);
-                    setPrompts(promptsList);
-                    console.log('Prompts reçus:', promptsList);
-                }
-
-                const mergedImageRef = ref(database, `rooms/${roomCode}/mergedImage`);
-                const mergedImageSnapshot = await get(mergedImageRef);
-                const mergedImageData = mergedImageSnapshot.val();
-                if (mergedImageData) {
-                    setMergedImageUrl(mergedImageData.imageUrl);
-                    console.log('Image fusionnée chargée:', mergedImageData.imageUrl);
-                }
-            } catch (error) {
-                console.error('Erreur lors du chargement des scores et des prompts:', error);
+        console.log('Chargement des scores des joueurs');
+        const playersRef = ref(database, `rooms/${roomCode}/players`);
+        onValue(playersRef, (snapshot) => {
+            const playersData = snapshot.val();
+            if (playersData) {
+                const sortedPlayers = Object.values(playersData).sort((a, b) => b.totalScore - a.totalScore);
+                setPlayers(sortedPlayers);
+                console.log('Scores des joueurs chargés:', sortedPlayers);
             }
-        };
+        });
 
-        fetchScoresAndPrompts();
+        const mergedImageRef = ref(database, `rooms/${roomCode}/mergedImage`);
+        onValue(mergedImageRef, (snapshot) => {
+            if (snapshot.exists()) {
+                setMergedImage(snapshot.val().imageUrl);
+                console.log('Image fusionnée chargée:', snapshot.val().imageUrl);
+            }
+        });
     }, [roomCode]);
 
     return (
         <div>
-            <h2>Tableau des Scores</h2>
-            <table>
-                <thead>
-                <tr>
-                    <th>Joueur</th>
-                    <th>Phase 2</th>
-                    <th>Phase 3</th>
-                    <th>Bonus</th>
-                    <th>Total</th>
-                </tr>
-                </thead>
-                <tbody>
+            <h2>Tableau des scores</h2>
+            {mergedImage && <img src={mergedImage} alt="Image fusionnée" />}
+            <ul>
                 {players.map((player, index) => (
-                    <tr key={index}>
-                        <td>{player.pseudo}</td>
-                        <td>{player.scorePhase2}</td>
-                        <td>{player.scorePhase3}</td>
-                        <td>{player.bonusPoints}</td>
-                        <td>{player.totalScore}</td>
-                    </tr>
+                    <li key={index}>
+                        <p>{player.pseudo} - Score total: {player.totalScore}</p>
+                    </li>
                 ))}
-                </tbody>
-            </table>
-            {mergedImageUrl && (
-                <div>
-                    <h3>Image Fusionnée</h3>
-                    <img src={mergedImageUrl} alt="Image Fusionnée" />
-                </div>
-            )}
-            <div>
-                <h3>Images Générées pendant la Partie</h3>
-                {prompts.map((promptData, index) => (
-                    <div key={index}>
-                        <h4>{promptData.pseudo}</h4>
-                        <img src={promptData.imageUrl} alt={`Image ${index + 1}`} />
-                        <p>Prompt : {promptData.prompt}</p>
-                    </div>
-                ))}
-            </div>
+            </ul>
         </div>
     );
 }

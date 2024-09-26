@@ -1,39 +1,34 @@
-// GamePhase1.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { database } from '../../firebaseConfig';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { ref, set, update } from 'firebase/database';
+import { ref, set, update, get } from 'firebase/database';
 
 console.log('GamePhase1.js chargé');
 
 function GamePhase1() {
     const [films, setFilms] = useState([]);
     const [selectedFilm, setSelectedFilm] = useState('');
-    const [prompt, setPrompt] = useState('');
+    const [description, setDescription] = useState('');
+    const [graphicStyle, setGraphicStyle] = useState('');
+    const [details, setDetails] = useState('');
+    const [generatingImage, setGeneratingImage] = useState(false);
     const navigate = useNavigate();
     const { roomCode } = useParams();
     const location = useLocation();
     const { playerId, pseudo } = location.state;
 
     useEffect(() => {
-        console.log('Chargement des films depuis l\'API GPT-3.5');
-
+        console.log('Chargement des films depuis une source API');
         const MyJson = {
             "blockbusters": [
-                "Avatar", "Avengers: Endgame", "Titanic", "Jurassic Park", "Le Roi Lion",
-                "Star Wars: Le Réveil de la Force", "Furious 7", "The Dark Knight",
-                "Harry Potter à l'école des sorciers", "La Reine des neiges"
+                "Avatar", "Avengers: Endgame", "Titanic", "Jurassic Park", "Le Roi Lion"
             ],
             "films_connus": [
-                "The Grand Budapest Hotel", "Donnie Darko", "Whiplash", "Le Discours d'un Roi",
-                "Une merveilleuse histoire du temps", "Moonlight", "Her", "Birdman",
-                "Little Miss Sunshine", "The Social Network"
+                "The Grand Budapest Hotel", "Donnie Darko", "Whiplash", "Le Discours d'un Roi"
             ],
             "films_de_niche": [
-                "The Lighthouse", "A Ghost Story", "Under the Skin", "The Florida Project",
-                "Enemy", "The Witch", "Enter the Void", "Only Lovers Left Alive",
-                "Annihilation", "Swiss Army Man"
+                "The Lighthouse", "A Ghost Story", "Under the Skin"
             ]
         };
 
@@ -46,7 +41,7 @@ function GamePhase1() {
                 const filmsList = [
                     { title: blockbusters, popularity: 'Blockbuster' },
                     { title: films_connus, popularity: 'Film connu' },
-                    { title: films_de_niche, popularity: 'Film de niche' },
+                    { title: films_de_niche, popularity: 'Film de niche' }
                 ];
 
                 setFilms(filmsList);
@@ -56,21 +51,28 @@ function GamePhase1() {
             }
         };
 
-        fetchFilms().then(r => console.log('Films récupérés'));
+        fetchFilms().then(() => console.log('Films récupérés'));
     }, []);
 
     const handleSubmit = async () => {
-        console.log('Envoi du prompt pour le film:', selectedFilm);
+        if (!description || !graphicStyle || !details || !selectedFilm) {
+            alert('Veuillez remplir tous les champs et sélectionner un film avant de générer l\'image.');
+            return;
+        }
+
+        setGeneratingImage(true);
 
         try {
-            const adjustedPromptResponse = await axios.post(
+            // Génération du prompt en arrière-plan avec GPT-3.5
+            console.log('Génération du prompt optimisé pour DALL·E 3');
+            const gptResponse = await axios.post(
                 'https://api.openai.com/v1/chat/completions',
                 {
                     model: 'gpt-3.5-turbo',
                     messages: [
                         {
                             role: 'user',
-                            content: `Améliore ce prompt pour qu'il soit accepté par DALL-E 3 : ${prompt}`,
+                            content: `Je veux une affiche de film qui montre : ${description}. Le style graphique utilisé doit être : ${graphicStyle}. Les détails les plus visibles seront : ${details}. Génère-moi un prompt en anglais optimisé pour DALL·E 3 qui respectera ces trois éléments. Le style de l'image doit être cohérent avec ce film : ${selectedFilm.title}.`,
                         },
                     ],
                 },
@@ -82,13 +84,14 @@ function GamePhase1() {
                 }
             );
 
-            const adjustedPrompt = adjustedPromptResponse.data.choices[0].message.content;
-            console.log('Prompt ajusté pour DALL·E:', adjustedPrompt);
+            const generatedPrompt = gptResponse.data.choices[0].message.content;
+            console.log('Prompt généré pour DALL·E 3:', generatedPrompt);
 
+            // Envoi du prompt à DALL·E 3 pour générer l'image
             const dalleResponse = await axios.post(
                 'https://api.openai.com/v1/images/generations',
                 {
-                    prompt: adjustedPrompt,
+                    prompt: generatedPrompt,
                     n: 1,
                     size: '256x256',
                 },
@@ -103,14 +106,27 @@ function GamePhase1() {
             const imageUrl = dalleResponse.data.data[0].url;
             console.log('Image générée URL:', imageUrl);
 
+            // Enregistrer le prompt, l'image et le film dans Firebase
             await set(ref(database, `rooms/${roomCode}/prompts/${playerId}`), {
                 film: selectedFilm.title,
                 filmPopularity: selectedFilm.popularity,
-                prompt,
+                prompt: generatedPrompt,
                 imageUrl,
                 pseudo,
             });
 
+            // Sauvegarder le film sélectionné dans une liste globale des films
+            const filmsRef = ref(database, `rooms/${roomCode}/films`);
+            const filmsSnapshot = await get(filmsRef);
+            const existingFilms = filmsSnapshot.exists() ? filmsSnapshot.val() : [];
+
+            const updatedFilms = { ...existingFilms }; // Créer un objet mis à jour
+            updatedFilms[`film_${playerId}`] = selectedFilm.title; // Ajouter le film avec un identifiant unique
+            await update(filmsRef, updatedFilms);
+
+            console.log('Film ajouté à la liste globale des films:', updatedFilms);
+
+            // Marquer le joueur comme ayant terminé
             await update(ref(database, `rooms/${roomCode}/players/${playerId}`), {
                 hasFinished: true,
                 film: selectedFilm.title,
@@ -119,16 +135,16 @@ function GamePhase1() {
 
             navigate(`/game/phase2/${roomCode}`, { state: { playerId, pseudo } });
         } catch (error) {
-            console.error('Erreur lors du traitement du prompt:', error);
+            console.error('Erreur lors de la génération de l\'image:', error);
+        } finally {
+            setGeneratingImage(false);
         }
     };
 
     return (
         <div>
-            <h2>Phase 1 : Choisissez un film et rédigez un prompt</h2>
-            <p>
-                Sélectionnez un film parmi la liste ci-dessous et rédigez un prompt décrivant une scène ou un élément du film.
-            </p>
+            <h2>Phase 1 : Choisissez un film et rédigez les détails de l'affiche</h2>
+            <p>Sélectionnez un film parmi la liste ci-dessous, puis décrivez l'affiche que vous souhaitez voir générée.</p>
             {films.length > 0 ? (
                 <div>
                     <h3>Films proposés :</h3>
@@ -145,13 +161,28 @@ function GamePhase1() {
                             </li>
                         ))}
                     </ul>
+
+                    <h3>Décrire l'affiche :</h3>
                     <textarea
-                        placeholder="Rédigez votre prompt ici"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
+                        placeholder="Décrivez ce qu'on verra sur l'affiche"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
                     />
-                    <button onClick={handleSubmit} disabled={!selectedFilm || !prompt}>
-                        Envoyer
+
+                    <textarea
+                        placeholder="Définissez le style graphique"
+                        value={graphicStyle}
+                        onChange={(e) => setGraphicStyle(e.target.value)}
+                    />
+
+                    <textarea
+                        placeholder="Quels détails ressortiront le plus ?"
+                        value={details}
+                        onChange={(e) => setDetails(e.target.value)}
+                    />
+
+                    <button onClick={handleSubmit} disabled={generatingImage}>
+                        {generatingImage ? 'Génération en cours...' : 'Envoyer et générer l\'image'}
                     </button>
                 </div>
             ) : (
