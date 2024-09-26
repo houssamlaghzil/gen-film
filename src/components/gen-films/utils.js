@@ -1,8 +1,12 @@
 export const cleanString = (str) => {
-    return str.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').trim();
+    console.log('cleanString function called with:', str);
+    const cleanedString = str.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').trim();
+    console.log('cleanedString result:', cleanedString);
+    return cleanedString;
 };
 
 export const levenshteinDistance = (a, b) => {
+    console.log('levenshteinDistance function called with:', a, b);
     const matrix = [];
     let i;
     for (i = 0; i <= b.length; i++) {
@@ -22,5 +26,6 @@ export const levenshteinDistance = (a, b) => {
             }
         }
     }
+    console.log('levenshteinDistance result:', matrix[b.length][a.length]);
     return matrix[b.length][a.length];
 };

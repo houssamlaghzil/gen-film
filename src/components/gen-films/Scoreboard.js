@@ -13,7 +13,10 @@ function Scoreboard() {
     const { pseudo } = location.state;
 
     useEffect(() => {
-        console.log('Chargement des scores des joueurs');
+        console.log('useEffect - Chargement des scores des joueurs');
+        console.log('roomCode:', roomCode);
+        console.log('pseudo:', pseudo);
+
         const playersRef = ref(database, `rooms/${roomCode}/players`);
         onValue(playersRef, (snapshot) => {
             const playersData = snapshot.val();

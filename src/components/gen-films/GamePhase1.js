@@ -19,7 +19,11 @@ function GamePhase1() {
     const { playerId, pseudo } = location.state;
 
     useEffect(() => {
-        console.log('Chargement des films depuis une source API');
+        console.log('useEffect - Loading films from a source API');
+        console.log('roomCode:', roomCode);
+        console.log('playerId:', playerId);
+        console.log('pseudo:', pseudo);
+
         const MyJson = {
             "blockbusters": [
                 "Avatar", "Avengers: Endgame", "Titanic", "Jurassic Park", "Le Roi Lion"
@@ -55,6 +59,11 @@ function GamePhase1() {
     }, []);
 
     const handleSubmit = async () => {
+        console.log('handleSubmit - Film selected:', selectedFilm);
+        console.log('Description:', description);
+        console.log('GraphicStyle:', graphicStyle);
+        console.log('Details:', details);
+
         if (!description || !graphicStyle || !details || !selectedFilm) {
             alert('Veuillez remplir tous les champs et sélectionner un film avant de générer l\'image.');
             return;
@@ -63,7 +72,6 @@ function GamePhase1() {
         setGeneratingImage(true);
 
         try {
-            // Génération du prompt en arrière-plan avec GPT-3.5
             console.log('Génération du prompt optimisé pour DALL·E 3');
             const gptResponse = await axios.post(
                 'https://api.openai.com/v1/chat/completions',
@@ -87,7 +95,6 @@ function GamePhase1() {
             const generatedPrompt = gptResponse.data.choices[0].message.content;
             console.log('Prompt généré pour DALL·E 3:', generatedPrompt);
 
-            // Envoi du prompt à DALL·E 3 pour générer l'image
             const dalleResponse = await axios.post(
                 'https://api.openai.com/v1/images/generations',
                 {
@@ -106,7 +113,6 @@ function GamePhase1() {
             const imageUrl = dalleResponse.data.data[0].url;
             console.log('Image générée URL:', imageUrl);
 
-            // Enregistrer le prompt, l'image et le film dans Firebase
             await set(ref(database, `rooms/${roomCode}/prompts/${playerId}`), {
                 film: selectedFilm.title,
                 filmPopularity: selectedFilm.popularity,
@@ -115,20 +121,19 @@ function GamePhase1() {
                 pseudo,
             });
 
-            // Sauvegarder le film sélectionné dans une liste globale des films
             const filmsRef = ref(database, `rooms/${roomCode}/films`);
             const filmsSnapshot = await get(filmsRef);
             const existingFilms = filmsSnapshot.exists() ? filmsSnapshot.val() : [];
 
-            const updatedFilms = { ...existingFilms }; // Créer un objet mis à jour
-            updatedFilms[`film_${playerId}`] = selectedFilm.title; // Ajouter le film avec un identifiant unique
+            const updatedFilms = { ...existingFilms };
+            updatedFilms[`film_${playerId}`] = selectedFilm.title;
             await update(filmsRef, updatedFilms);
 
             console.log('Film ajouté à la liste globale des films:', updatedFilms);
 
-            // Marquer le joueur comme ayant terminé
+            // Marquer le joueur comme ayant terminé la phase 1
             await update(ref(database, `rooms/${roomCode}/players/${playerId}`), {
-                hasFinished: true,
+                hasFinishedPhase1: true,
                 film: selectedFilm.title,
                 filmPopularity: selectedFilm.popularity,
             });
@@ -155,7 +160,10 @@ function GamePhase1() {
                                     type="radio"
                                     name="film"
                                     value={index}
-                                    onChange={() => setSelectedFilm(film)}
+                                    onChange={() => {
+                                        setSelectedFilm(film);
+                                        console.log('Selected film:', film);
+                                    }}
                                 />
                                 {film.title} ({film.popularity})
                             </li>
@@ -166,19 +174,28 @@ function GamePhase1() {
                     <textarea
                         placeholder="Décrivez ce qu'on verra sur l'affiche"
                         value={description}
-                        onChange={(e) => setDescription(e.target.value)}
+                        onChange={(e) => {
+                            setDescription(e.target.value);
+                            console.log('Description updated:', e.target.value);
+                        }}
                     />
 
                     <textarea
                         placeholder="Définissez le style graphique"
                         value={graphicStyle}
-                        onChange={(e) => setGraphicStyle(e.target.value)}
+                        onChange={(e) => {
+                            setGraphicStyle(e.target.value);
+                            console.log('Graphic style updated:', e.target.value);
+                        }}
                     />
 
                     <textarea
                         placeholder="Quels détails ressortiront le plus ?"
                         value={details}
-                        onChange={(e) => setDetails(e.target.value)}
+                        onChange={(e) => {
+                            setDetails(e.target.value);
+                            console.log('Details updated:', e.target.value);
+                        }}
                     />
 
                     <button onClick={handleSubmit} disabled={generatingImage}>

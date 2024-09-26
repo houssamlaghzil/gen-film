@@ -14,8 +14,16 @@ function FusionPrompt() {
     const { playerId, pseudo } = location.state;
     const navigate = useNavigate();
 
+    useEffect(() => {
+        console.log('useEffect - FusionPrompt loaded');
+        console.log('roomCode:', roomCode);
+        console.log('playerId:', playerId);
+        console.log('pseudo:', pseudo);
+    }, [roomCode, playerId, pseudo]);
+
     const handleGenerateImage = async () => {
         console.log('Génération de l\'image avec prompt:', prompt);
+
         try {
             const response = await axios.post(
                 'https://api.openai.com/v1/images/generations',
@@ -55,7 +63,10 @@ function FusionPrompt() {
             <h2>Fusion des films</h2>
             <textarea
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                onChange={(e) => {
+                    setPrompt(e.target.value);
+                    console.log('Prompt updated:', e.target.value);
+                }}
                 placeholder="Entrez un prompt pour la fusion"
             />
             <button onClick={handleGenerateImage}>Générer l'image</button>

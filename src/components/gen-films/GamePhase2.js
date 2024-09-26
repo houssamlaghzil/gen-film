@@ -15,7 +15,11 @@ function GamePhase2() {
     const [correctPrompts, setCorrectPrompts] = useState([]); // Ajout pour stocker les prompts corrects
 
     useEffect(() => {
-        console.log('Chargement des images générées pendant la Phase 1 pour les autres joueurs');
+        console.log('useEffect - Chargement des images générées pendant la Phase 1 pour les autres joueurs');
+        console.log('roomCode:', roomCode);
+        console.log('playerId:', playerId);
+        console.log('pseudo:', pseudo);
+
         const promptsRef = ref(database, `rooms/${roomCode}/prompts`);
         onValue(promptsRef, (snapshot) => {
             const promptsData = snapshot.val();
@@ -32,30 +36,33 @@ function GamePhase2() {
 
     const handleGuessChange = (index, guess) => {
         setGuesses({ ...guesses, [index]: guess });
-        console.log('Devine mise à jour pour l\'image:', guesses);
+        console.log(`Devine mise à jour pour l'image ${index}:`, guess);
     };
 
     const handleSubmit = async () => {
-        console.log('Soumission des devinettes pour la Phase 2:', guesses);
+        console.log('handleSubmit - Soumission des devinettes pour la Phase 2:', guesses);
 
-        // Calcul des scores pour la phase 2
         let score = 0;
         correctPrompts.forEach((correctFilm, index) => {
             if (guesses[index] === correctFilm) {
                 score += 1;
             }
         });
+        console.log('Score calculé pour la Phase 2:', score);
+
+        // GamePhase2.js
 
         try {
-            // Mise à jour du score en base de données
+            // Mise à jour du score et état de la phase 2
             const playerRef = ref(database, `rooms/${roomCode}/players/${playerId}`);
             const currentPlayerData = (await get(playerRef)).val();
             await update(playerRef, {
                 guesses, // Enregistrer les devinettes du joueur
                 scorePhase2: score, // Enregistrer le score pour la phase 2
                 totalScore: currentPlayerData.totalScore + score, // Mettre à jour le score total
-                hasFinished: true,
+                hasFinishedPhase2: true, // Indiquer que la phase 2 est terminée pour ce joueur
             });
+
 
             console.log('Devine soumise avec succès, score mis à jour.');
             navigate(`/game/phase3/${roomCode}`, { state: { playerId, pseudo } });

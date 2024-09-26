@@ -63,10 +63,10 @@ function WaitingRoom() {
                 <option value="senariste">Sénariste</option>
             </select>
 
-            {players.length >= 3 && (
+            {players.length >= 2 && (
                 <button onClick={startGame}>Commencer la partie</button>
             )}
-            {players.length < 3 && <p>En attente d'autres joueurs...</p>}
+            {players.length < 2 && <p>En attente d'autres joueurs...</p>}
         </div>
     );
 }

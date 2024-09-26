@@ -13,16 +13,20 @@ function GamePhase3() {
     const [fusionPrompt, setFusionPrompt] = useState('');
     const [generatingImage, setGeneratingImage] = useState(false);
     const [scenarist, setScenarist] = useState(null);
-    const [imageReady, setImageReady] = useState(false); // New state to track if the image is ready
+    const [imageReady, setImageReady] = useState(false);
     const navigate = useNavigate();
     const { roomCode } = useParams();
     const location = useLocation();
     const { playerId, pseudo } = location.state;
 
     useEffect(() => {
-        console.log('Vérification du scénariste et chargement des films sélectionnés');
+        console.log('useEffect - Vérification du scénariste et chargement des films sélectionnés');
+        console.log('roomCode:', roomCode);
+        console.log('playerId:', playerId);
+        console.log('pseudo:', pseudo);
 
         const designateScenarist = async () => {
+            console.log('Désignation du scénariste');
             const playersRef = ref(database, `rooms/${roomCode}/players`);
             const playersSnapshot = await get(playersRef);
             const playersData = playersSnapshot.val();
@@ -48,8 +52,8 @@ function GamePhase3() {
             }
         };
 
-        // Charger la liste globale des films sélectionnés par les joueurs
         const fetchFilms = async () => {
+            console.log('Chargement des films sélectionnés');
             const filmsRef = ref(database, `rooms/${roomCode}/films`);
             const filmsSnapshot = await get(filmsRef);
             const filmsData = filmsSnapshot.val();
@@ -73,7 +77,6 @@ function GamePhase3() {
                 designateScenarist();
             }
 
-            // Check if the merged image is ready and redirect the players
             if (roomData && roomData.mergedImage && roomData.mergedImage.imageUrl) {
                 setImageReady(true);
                 console.log('Image fusionnée prête, redirection des joueurs.');
@@ -84,6 +87,7 @@ function GamePhase3() {
         fetchFilms();
 
         return () => {
+            console.log('Cleaning up listeners');
             off(roomRef);
         };
     }, [roomCode, pseudo, navigate]);
@@ -100,6 +104,9 @@ function GamePhase3() {
     };
 
     const handleGenerateFusionImage = async () => {
+        console.log('handleGenerateFusionImage - Films sélectionnés:', selectedFilms);
+        console.log('Fusion prompt:', fusionPrompt);
+
         if (selectedFilms.length !== 2 || fusionPrompt.trim() === '') {
             alert('Veuillez sélectionner deux films et rédiger un prompt de fusion.');
             return;
@@ -135,7 +142,11 @@ function GamePhase3() {
 
             console.log('Image fusionnée générée et enregistrée:', imageUrl);
 
-            // Rediriger les joueurs vers la Phase de devinette
+            // Marquer le scénariste comme ayant terminé la phase 3
+            await update(ref(database, `rooms/${roomCode}/players/${playerId}`), {
+                hasFinishedPhase3: true, // Indiquer que le scénariste a fini la phase 3
+            });
+
             setImageReady(true);
             navigate(`/fusion-guessing/${roomCode}`, { state: { playerId, pseudo } });
         } catch (error) {
