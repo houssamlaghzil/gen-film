@@ -18,6 +18,7 @@ import './css/SpectatorPage.css'
 import Login from "./components/Login";
 import SpectatorPage from "./components/gen-films/SpectatorPage/SpectatorPage";
 import AllRoomsPage from "./components/gen-films/SpectatorPage/AllRoomsPage";
+import WizardDuel from "./components/combat_de_sorcier/wizard-duel/WizardDuel";
 
 
 console.log('App.js loaded');
@@ -162,6 +163,15 @@ function App() {
                     />
                     <Route path="/spectator/:roomCode" element={<SpectatorPage />} />
                     <Route path="/AllRoomsPage" element={<AllRoomsPage />} />
+                    {/* Add the new route for the wizard duel game */}
+                    <Route
+                        path="/game/combat_de_sorcier/:roomCode"
+                        element={
+                            <ProtectedRoute>
+                                <WizardDuel />
+                            </ProtectedRoute>
+                        }
+                    />
                 </Routes>
             </div>
         </Router>

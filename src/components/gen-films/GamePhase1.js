@@ -26,7 +26,36 @@ function GamePhase1() {
 
         const MyJson = {
             "blockbusters": [
-                "Avatar", "Avengers: Endgame", "Titanic", "Jurassic Park", "Le Roi Lion"
+                "Avatar",
+                "Avengers: Endgame",
+                "Titanic",
+                "Jurassic Park",
+                "The Lion King",
+                "Star Wars: The Force Awakens",
+                "Furious 7",
+                "The Dark Knight",
+                "Harry Potter and the Sorcerer's Stone",
+                "Frozen",
+                "Black Panther",
+                "The Avengers",
+                "Spider-Man: No Way Home",
+                "Inception",
+                "The Lord of the Rings: The Return of the King",
+                "Pirates of the Caribbean: Dead Man's Chest",
+                "The Matrix",
+                "Finding Nemo",
+                "Toy Story 3",
+                "Transformers: Dark of the Moon",
+                "The Hunger Games",
+                "The Twilight Saga: Breaking Dawn Part 2",
+                "Jumanji: Welcome to the Jungle",
+                "Iron Man 3",
+                "Shrek 2",
+                "Batman v Superman: Dawn of Justice",
+                "Captain America: Civil War",
+                "Aquaman",
+                "Zootopia",
+                "Beauty and the Beast (2017)"
             ],
             "films_connus": [
                 "The Grand Budapest Hotel", "Donnie Darko", "Whiplash", "Le Discours d'un Roi"
